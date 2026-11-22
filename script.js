@@ -46,6 +46,23 @@ function toast(message) {
   const el = $('toast'); el.textContent=message; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3200);
 }
+const music = $('invitation-music');
+const musicToggle = $('music-toggle');
+function setMusicButton(isPlaying) {
+  musicToggle.setAttribute('aria-pressed', String(isPlaying));
+  musicToggle.innerHTML = `<span class="music-note" aria-hidden="true">${isPlaying ? 'Ⅱ' : '♫'}</span><span>${isPlaying ? 'PAUSE OUR SONG' : 'PLAY OUR SONG'}</span>`;
+}
+musicToggle.addEventListener('click', async () => {
+  if (!music.paused) { music.pause(); return; }
+  try {
+    await music.play();
+    setMusicButton(true);
+  } catch (error) {
+    toast('Music could not play on this device.');
+  }
+});
+music.addEventListener('pause', () => setMusicButton(false));
+music.addEventListener('play', () => setMusicButton(true));
 const rsvpForm = $('rsvp-form');
 const rsvpAttendance = rsvpForm.elements.attendance;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
