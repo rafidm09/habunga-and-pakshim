@@ -19,15 +19,28 @@ if ('IntersectionObserver' in window) {
   document.querySelectorAll('.reveal').forEach(el => watcher.observe(el));
 } else { document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible')); }
 let framePending = false;
+function updateHeroFlowers() {
+  const progress = Math.min(1, Math.max(0, scrollY / Math.max(1, innerHeight * .82)));
+  const convergence = Math.min(innerWidth * .31, 390) * progress;
+  document.documentElement.style.setProperty('--flower-left-shift', `${convergence * 1.6}px`);
+  document.documentElement.style.setProperty('--flower-right-shift', `${-convergence}px`);
+  document.documentElement.style.setProperty('--flower-left-turn', `${-12 - progress * 38}deg`);
+  document.documentElement.style.setProperty('--flower-right-turn', `${-12 + progress * 38}deg`);
+  document.documentElement.style.setProperty('--flower-lift', `${-progress * 52}px`);
+  document.documentElement.style.setProperty('--hero-copy-fade', `${1 - progress * .16}`);
+}
+updateHeroFlowers();
 addEventListener('scroll', () => {
   if (framePending) return;
   framePending = true;
   requestAnimationFrame(() => {
     const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
     $('reading-progress').style.width = `${Math.min(100,Math.max(0,scrollY/max*100))}%`;
+    updateHeroFlowers();
     framePending = false;
   });
 }, { passive:true });
+addEventListener('resize', updateHeroFlowers, { passive:true });
 let toastTimer;
 function toast(message) {
   const el = $('toast'); el.textContent=message; el.classList.add('show');
