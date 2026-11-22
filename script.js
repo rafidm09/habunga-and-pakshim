@@ -33,13 +33,67 @@ function toast(message) {
   const el = $('toast'); el.textContent=message; el.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3200);
 }
-$('share-button').addEventListener('click', async () => {
-  const payload = {title:'Rafid & Afsana — Nikkah Invitation', text:'You are invited to our Nikkah on Sunday, January 3, 2027 at 6 PM at Banff Trail Community Association, Calgary.', url:location.href};
+const rsvpForm = $('rsvp-form');
+const rsvpAttendance = rsvpForm.elements.attendance;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+function showRsvpEffect(attendance) {
+  if (reducedMotion.matches) return;
+  const effects = {
+    definitely: ['🎆', '✨', '🍾', '🥂', '✦'],
+    maybe: ['⌛', '⏳', '⌛', '⏳'],
+    declined: ['😢', '💔', '🥺', '💔']
+  };
+  const isCelebration = attendance === 'definitely';
+  const layer = document.createElement('div');
+  layer.className = `rsvp-effects ${isCelebration ? 'rsvp-effects--celebration' : 'rsvp-effects--falling'}`;
+  layer.setAttribute('aria-hidden', 'true');
+  const particles = isCelebration ? 18 : 14;
+  for (let index = 0; index < particles; index += 1) {
+    const particle = document.createElement('span');
+    particle.className = 'rsvp-effect';
+    particle.textContent = effects[attendance][index % effects[attendance].length];
+    particle.style.setProperty('--x', `${8 + Math.random() * 84}%`);
+    particle.style.setProperty('--y', `${isCelebration ? 18 + Math.random() * 54 : -8 - Math.random() * 18}%`);
+    particle.style.setProperty('--delay', `${Math.random() * 0.55}s`);
+    particle.style.setProperty('--drift', `${-90 + Math.random() * 180}px`);
+    particle.style.setProperty('--turn', `${-40 + Math.random() * 80}deg`);
+    layer.appendChild(particle);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 3000);
+}
+
+rsvpAttendance.addEventListener('change', () => showRsvpEffect(rsvpAttendance.value));
+
+rsvpForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const formData = new FormData(rsvpForm);
+  const name = formData.get('name').trim();
+  const attendance = formData.get('attendance');
+  const response = $('rsvp-response');
+  const submitButton = rsvpForm.querySelector('[type="submit"]');
+  const messages = {
+    definitely: `Thank you so much ${name}, we both look forward to seeing you on our special day.`,
+    maybe: `Thank you so much ${name}. Take your time, and please let us know when you can — we would love to celebrate with you.`,
+    declined: `Thank you so much ${name}. We will miss you dearly, but we are sending you lots of love and duas.`
+  };
+  submitButton.disabled = true;
+  submitButton.textContent = 'SENDING…';
   try {
-    if (navigator.share) { await navigator.share(payload); return; }
-    if (navigator.clipboard && location.protocol !== 'file:') { await navigator.clipboard.writeText(location.href); toast('Invitation link copied!'); return; }
-    toast('Copy the page address to share your invitation.');
-  } catch(err) { if(err.name !== 'AbortError') toast('Please copy the website address to share.'); }
+    const submission = new URLSearchParams(formData).toString();
+    const result = await fetch('/', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:submission });
+    if (!result.ok) throw new Error('Submission failed');
+    response.textContent = messages[attendance];
+    response.classList.add('visible');
+    rsvpForm.reset();
+  } catch (error) {
+    response.textContent = 'Sorry — the RSVP could not be sent. Please try again once the invitation is published.';
+    response.classList.add('visible');
+  } finally {
+    submitButton.disabled = false;
+    submitButton.innerHTML = 'SEND RSVP <span aria-hidden="true">↗</span>';
+  }
 });
 $('calendar-button').addEventListener('click', () => {
   const ics = [
